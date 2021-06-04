@@ -15,8 +15,9 @@ import reportWebVitals from "./reportWebVitals";
 import { DatePicker } from "@material-ui/pickers";
 import DateFnsUtils from "@date-io/date-fns";
 import { MuiPickersUtilsProvider } from "@material-ui/pickers";
-import { Route, Switch, useLocation, useParams } from "react-router";
+import { Route, Switch, useParams } from "react-router";
 import { BrowserRouter as Router, Link } from "react-router-dom";
+import { format } from "date-fns";
 
 function avalibleCups(id) {
   const avalible = [
@@ -25,27 +26,37 @@ function avalibleCups(id) {
   return avalible.includes(id);
 }
 
-function Main(props) {
+function Main() {
+  const [filter, setFilter] = useState("");
+  const [date, setDate] = useState(new Date());
+  function getFilter(string, date) {
+    setFilter(string);
+    setDate(date);
+  }
+
   //роутер
   // начальная страница - кубки
   //после выбора идут команды этого кубка. Затем сам лист команды
   return (
     <MuiPickersUtilsProvider utils={DateFnsUtils}>
+      <SearchBar onChange={getFilter} season={date} />
       <Switch>
-        <Route path="/:id/teams/:teamsId" component={Team} />
-        <Route path="/:id/teams/" component={TeamList} />
-        <Route path="/" component={Championships} />
+        <Route
+          path="/:id/teams/:teamsId"
+          render={(props) => <Team season={date} filter={filter} />}
+        />
+        <Route
+          path="/:id/teams"
+          render={(props) => <TeamList filter={filter} date={date} />}
+        />
+        <Route path="/" render={(props) => <Championships filter={filter} />} />
       </Switch>
     </MuiPickersUtilsProvider>
   );
 }
 
-function Championships() {
+function Championships(props) {
   const [value, setValue] = useState([]); //
-  const [filter, setFilter] = useState({
-    word: "",
-    date: new Date().getFullYear(),
-  });
 
   useEffect(() => {
     let url = "http://api.football-data.org/v2/competitions/";
@@ -58,29 +69,23 @@ function Championships() {
     })
       .then((response) => response.json())
       .then((resp) => {
-        const filtered = resp.competitions
-          .filter((elem) => avalibleCups(elem.id))
+        const filtered = resp?.competitions
+          ?.filter((elem) => avalibleCups(elem.id))
           .filter((e) =>
-            e.name
-              .toLowerCase()
-              .includes(filter.word ? filter.word.toLowerCase() : "")
+            e.name.toLowerCase().includes(props.filter.toLowerCase() || "")
           );
-        return setValue([...filtered]); //
+        return setValue(filtered);
       });
-  }, [filter.word]);
-  function getFilter(string, date) {
-    setFilter({
-      ...filter,
-      word: string,
-      date: date,
-    });
-  }
+  }, [props.filter]);
+
   const participants = value?.map((comp) => {
     //
     return (
       <Card key={comp.id}>
         <CardActionArea>
-          <Link to={`${comp.id}/teams/`}>
+          <Link
+            to={`${comp.id}/teams?name=${props.filter || ""}&date=${props.season}`}
+          >
             <CardContent>
               <p>{comp.name}</p>
               <p>{comp.area.name}</p>
@@ -92,7 +97,6 @@ function Championships() {
   });
   return (
     <div>
-      <SearchBar onChange={getFilter} />
       <ul>{participants}</ul>
     </div>
   );
@@ -102,22 +106,15 @@ function Championships() {
   return <TeamList teams={props.teams} />;
 }*/
 
-function TeamList() {
+function TeamList(props) {
   const [teams, setValue] = useState([]);
   const { id } = useParams(); //берем id из URL, используем для запроса api
-  const [filter, setFilter] = useState({
-    word: "",
-    date: new Date().getFullYear,
-  });
 
   useEffect(() => {
     let url = "http://api.football-data.org/v2/competitions/";
 
-    const cupTemplate = `${id}/teams/`;
-    const cupUrl = url + cupTemplate;
-    if (filter.date !== new Date().getFullYear) {
-      cupUrl += `?season=${filter.date}`;
-    }
+    const cupTemplate = `${id}/teams`;
+    let cupUrl = url + cupTemplate;
     fetch(cupUrl, {
       method: "GET",
       headers: {
@@ -125,18 +122,20 @@ function TeamList() {
       },
     })
       .then((response) => response.json())
-      .then((resp) => {
-        setValue([...resp.teams]);
-      });
+      .then(
+        (resp) => {
+          console.log(resp);
+          const filtered = resp?.teams?.filter((e) =>
+            e.name.toLowerCase().includes(props.filter.toLowerCase() || "")
+          );
+          setValue(filtered);
+        },
+        (error) => {
+          throw new Error(error);
+        }
+      );
     // eslint-disable-next-line
-  }, []); //квадратные скобки чтоб useEffect происходил только при рендере
-  function getFilter(string, date) {
-    setFilter({
-      ...filter,
-      word: string,
-      date: date,
-    });
-  }
+  }, [props.filter]); //квадратные скобки чтоб useEffect происходил только при рендере
   const list = teams.map((team) => {
     return (
       <Card key={team.id} className="club-list-item">
@@ -154,9 +153,8 @@ function TeamList() {
   });
   return (
     <Paper className="main">
-      <SearchBar onChange={getFilter} />
       <ul>{list}</ul>
-      <ChampionshipSchedule champId={id} />
+      <ChampionshipSchedule champId={id} date={props.date} />
     </Paper>
   );
 }
@@ -176,25 +174,37 @@ function Team() {
         setTeam({ ...resp });
         console.log(resp);
       });
+    // eslint-disable-next-line
   }, []);
   return (
-    <Card className="club-card">
-      <CardContent>
-        <Typography>{team.name}</Typography>
-        <Typography>{team.venue}</Typography>
-      </CardContent>
-    </Card>
+    <div>
+      <Card className="club-card">
+        <CardContent>
+          <Typography>{team.name}</Typography>
+          <Typography>{team.venue}</Typography>
+        </CardContent>
+      </Card>
+      <TeamSchedule id={teamsId} />
+    </div>
   );
 }
 function SearchBar(props) {
   const [search, setSearch] = useState("");
-  const [selectedDate, handleDateChange] = useState(0);
+  const [selectedDate, handleDateChange] = useState(new Date());
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.href);
     const date = params.get("date");
     const name = params.get("name");
-    props.onChange(name, date);
+    console.log(name);
+    console.log(date);
+    if (name) {
+      setSearch(name);
+    }
+    if (date) {
+      handleDateChange(date);
+    }
+    props.onChange(search, selectedDate);
     // eslint-disable-next-line
   }, []);
 
@@ -205,7 +215,7 @@ function SearchBar(props) {
     e.preventDefault();
     props.onChange(search, selectedDate);
     const currUrl = new URL(window.location.href);
-    currUrl.searchParams.set("date", selectedDate);
+    currUrl.searchParams.set("date", format(selectedDate, "yyyy"));
     currUrl.searchParams.set("name", search);
     window.history.pushState({}, "", currUrl);
     setSearch("");
@@ -242,18 +252,18 @@ function App(props) {
   );
 }
 function ChampionshipSchedule(props) {
-  const [matches, setMatches] = {
-    value: [],
-    dateFrom: 0,
-    dateTo: 0,
-  };
+  const [matches, setMatches] = useState([]);
+  const [dateFrom, setStart] = useState(0);
+  const [dateTo, setEnd] = useState(0);
   useEffect(() => {
-    let url = `http://api.football-data.org/v2/matches?competitions={${props.champId}}`;
-    if (matches.dateFrom !== 0) {
-      url += `&dateFrom=${matches.dateFrom}`;
-    }
-    if (matches.dateTo !== 0) {
-      url += `&dateFrom=${matches.dateTo}`;
+    let url = `http://api.football-data.org/v2/competitions/${props.champId}/matches`;
+    console.log(url);
+    console.log(dateFrom);
+    if (dateFrom !== 0 && dateTo !== 0) {
+      url += `?dateFrom=${format(dateFrom, "yyyy-MM-dd")}&dateTo=${format(
+        dateTo,
+        "yyyy-MM-dd"
+      )}`;
     }
     fetch(url, {
       method: "GET",
@@ -262,14 +272,10 @@ function ChampionshipSchedule(props) {
       },
     })
       .then((response) => response.json())
-      .then((resp) =>
-        setMatches({
-          ...matches,
-          value: resp.matches,
-        })
-      );
-  });
-  const list = matches?.value?.map((elem) => {
+      .then((resp) => setMatches(resp.matches));
+    // eslint-disable-next-line
+  }, [dateFrom, dateTo]);
+  const list = matches?.map((elem) => {
     return (
       <li key={elem.id}>
         <Paper>
@@ -280,8 +286,85 @@ function ChampionshipSchedule(props) {
       </li>
     );
   });
-  return;
-  <ul>{list}</ul>;
+  return (
+    <div>
+      <DatePicker
+        name="date"
+        views={["year", "month", "date"]}
+        label="От"
+        onChange={setStart}
+        format="yyyy/MM/dd"
+        value={dateFrom}
+      />
+      <DatePicker
+        name="date"
+        views={["year", "month", "date"]}
+        format="yyyy/MM/dd"
+        label="До"
+        onChange={setEnd}
+        value={dateTo}
+      />
+      <ul>{list}</ul>
+    </div>
+  );
+}
+function TeamSchedule(props) {
+  const [matches, setMatches] = useState([]);
+  const [dateFrom, setStart] = useState(0);
+  const [dateTo, setEnd] = useState(0);
+  useEffect(() => {
+    let url = `http://api.football-data.org/v2/teams/${props.id}/matches`;
+    console.log(url);
+    console.log(dateFrom);
+    if (dateFrom !== 0 && dateTo !== 0) {
+      url += `?dateFrom=${format(dateFrom, "yyyy-MM-dd")}&dateTo=${format(
+        dateTo,
+        "yyyy-MM-dd"
+      )}`;
+    }
+
+    fetch(url, {
+      method: "GET",
+      headers: {
+        "X-Auth-Token": "61d9e360e25743a0bbf1d837b0d1e7f2",
+      },
+    })
+      .then((response) => response.json())
+      .then((resp) => setMatches(resp.matches));
+    // eslint-disable-next-line
+  }, [dateFrom, dateTo]);
+  const list = matches?.map((elem) => {
+    return (
+      <li key={elem.id}>
+        <Paper>
+          <p>{elem.utcDate}</p>
+          <p>{elem.homeTeam.name}</p>
+          <p>{elem.awayTeam.name}</p>
+        </Paper>
+      </li>
+    );
+  });
+  return (
+    <div>
+      <DatePicker
+        name="date"
+        views={["year", "month", "date"]}
+        label="От"
+        onChange={setStart}
+        format="yyyy/MM/dd"
+        value={dateFrom}
+      />
+      <DatePicker
+        name="date"
+        views={["year", "month", "date"]}
+        format="yyyy/MM/dd"
+        label="До"
+        onChange={setEnd}
+        value={dateTo}
+      />
+      <ul>{list}</ul>
+    </div>
+  );
 }
 ReactDOM.render(<App />, document.getElementById("root"));
 
