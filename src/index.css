@@ -34,9 +34,6 @@ body {
   align-items: center;
   height: clamp(160px, 30vh, 250px);
 }
-.submit {
-  background-color: var(--btn-color);
-}
 .championships {
   display: flex;
   flex-direction: column;
@@ -112,4 +109,42 @@ a {
 }
 .error {
   margin: auto;
+}
+@media screen and (orientation: portrait) {
+  .main {
+    width: 100%;
+    margin-left: 0;
+    top: 120px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .search-bar {
+    width: 100%;
+    position: relative;
+    height: auto;
+    float: none;
+  }
+  .search-bar form {
+    flex-direction: row;
+    height: auto;
+  }
+  .championships {
+    margin: auto;
+    width: 100%;
+    padding: 0;
+  }
+  .teams {
+    padding: 0;
+  }
+  .margin {
+    margin-left: 0;
+    margin: auto;
+  }
+  .schedule {
+    margin-left: 0;
+  }
+  .club-card {
+    margin: 20px;
+  }
 }

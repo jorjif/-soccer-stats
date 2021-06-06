@@ -18,7 +18,8 @@ import { MuiPickersUtilsProvider } from "@material-ui/pickers";
 import { Route, Switch, useParams } from "react-router";
 import { BrowserRouter as Router, Link } from "react-router-dom";
 import { format } from "date-fns";
-const { REACT_APP_KEY } = process.env;
+const REACT_APP_KEY = process.env.REACT_APP_KEY;
+console.log(REACT_APP_KEY);
 function avalibleCups(id) {
   //функция фильтрует доступные в данный момент кубки
   const avalible = [
@@ -97,7 +98,7 @@ function Championships(props) {
     fetch(url, {
       method: "GET",
       headers: {
-        "X-Auth-Token": REACT_APP_KEY,
+        "X-Auth-Token": `${REACT_APP_KEY}`,
       },
     })
       .then((response) => response.json())
@@ -149,7 +150,7 @@ function TeamList(props) {
     fetch(cupUrl, {
       method: "GET",
       headers: {
-        "X-Auth-Token": REACT_APP_KEY,
+        "X-Auth-Token": `${REACT_APP_KEY}`,
       },
     })
       .then((response) => response.json())
@@ -200,7 +201,7 @@ function Team(props) {
     fetch(teamUrl, {
       method: "GET",
       headers: {
-        "X-Auth-Token": REACT_APP_KEY,
+        "X-Auth-Token": `${REACT_APP_KEY}`,
       },
     })
       .then((response) => response.json())
@@ -287,7 +288,7 @@ function ChampionshipSchedule(props) {
     fetch(url, {
       method: "GET",
       headers: {
-        "X-Auth-Token": REACT_APP_KEY,
+        "X-Auth-Token": `${REACT_APP_KEY}`,
       },
     })
       .then((response) => response.json())
@@ -365,7 +366,7 @@ function TeamSchedule(props) {
     fetch(url, {
       method: "GET",
       headers: {
-        "X-Auth-Token": REACT_APP_KEY,
+        "X-Auth-Token": `${REACT_APP_KEY}`,
       },
     })
       .then((response) => response.json())
