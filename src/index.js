@@ -42,17 +42,16 @@ function datePicker(startDate, endDate, year) {
 }
 
 function Main() {
-  const [filter, setFilter] = useState(""); //
-  const [date, setDate] = useState(currYear); //
+  const [filter, setFilter] = useState(""); //стейт вордфильтра
+  const [date, setDate] = useState(currYear); //стейт для текущего года соревнований
   useEffect(() => {
-    const params = new URL(document.location).searchParams; //
-    console.log(params.toString());
-    //
+    const params = new URL(document.location).searchParams; // берет url параметры
+    //задает переменные с этими параметрами
     const year = params.get("date");
     const name = params.get("name");
 
     if (name) {
-      //
+      //проверяет существуют ли url параметры
       setFilter(name);
     }
     if (year) {
@@ -90,7 +89,7 @@ function Main() {
 }
 
 function Championships(props) {
-  const [value, setValue] = useState([]); //
+  const [value, setValue] = useState([]); //контейнер для поиска
 
   useEffect(() => {
     let url = "http://api.football-data.org/v2/competitions/";
@@ -108,7 +107,7 @@ function Championships(props) {
         return setValue(filtered);
       });
   }, [props]);
-  //
+  //ворд фильтр полученного из fetch массива
   const participants = value
     ?.filter((elem) => avalibleCups(elem.id))
     .filter((e) => e.name.toLowerCase().includes(props.filter.toLowerCase() || ""))
@@ -230,12 +229,16 @@ function SearchBar(props) {
     setSearch(e.target.value);
   }
   function submitAction(e) {
-    e.preventDefault();
-    props.onChange(search, format(selectedDate, "yyyy"));
+    e.preventDefault(); //не дает перезагрузиться странице при отправке формы
+    props.onChange(search, format(selectedDate, "yyyy")); // изменяет стейт даты в <Main>
+    // format приводит дату к необходимому виду
     const currUrl = new URL(window.location.href);
+    //ставим url параметры
     currUrl.searchParams.set("date", format(selectedDate, "yyyy"));
     currUrl.searchParams.set("name", search);
+    //пушим параметры в конец url
     window.history.pushState({}, "", currUrl);
+    //оставляем поисковую строку пустой
     setSearch("");
   }
   return (
@@ -279,7 +282,7 @@ function ChampionshipSchedule(props) {
   const [dateTo, setEnd] = useState(0);
   useEffect(() => {
     let url = `http://api.football-data.org/v2/competitions/${props.champId}/matches`;
-    url += datePicker(dateFrom, dateTo, props.season);
+    url += datePicker(dateFrom, dateTo, props.season); //добавляем строку с фильтром
     console.log(url);
     fetch(url, {
       method: "GET",
@@ -303,6 +306,7 @@ function ChampionshipSchedule(props) {
     );
   });
   if (!matches) {
+    //в случае возниконвения ошибки рендерим эту страницу
     return (
       <div className="schedule">
         <div className="date-bar">
