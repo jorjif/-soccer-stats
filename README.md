@@ -1,3 +1,6 @@
+#Это готовая версия тестового задания soccer-stats
+В данной версии отсутствует ключ от API. Его требуется вставить самостоятельно при помощи .env файла в корне
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
