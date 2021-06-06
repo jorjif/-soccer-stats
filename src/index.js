@@ -19,7 +19,6 @@ import { Route, Switch, useParams } from "react-router";
 import { BrowserRouter as Router, Link } from "react-router-dom";
 import { format } from "date-fns";
 const REACT_APP_KEY = process.env.REACT_APP_KEY;
-console.log(REACT_APP_KEY);
 function avalibleCups(id) {
   //функция фильтрует доступные в данный момент кубки
   const avalible = [
