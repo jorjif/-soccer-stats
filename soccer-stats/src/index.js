@@ -2,21 +2,22 @@ import React, { useState } from "react";
 import ReactDOM from "react-dom";
 import "./index.css";
 import reportWebVitals from "./reportWebVitals";
-
 function Main(props) {
   const [screen, setScreen] = useState({
     state: "competition", // три варианта competition, teams, team - отображают свои страницы, цикличны
-    content: props, // отображаемый контент страницы
+    content: props.competition,
+  });
+  const [teamId, setTeamId] = useState({
     id: 0,
   });
-  if (props.competition)
+  /*if (props.competition)
     setScreen({
       state: "competition",
     });
   if (props.competitors)
     setScreen({
       state: "teams",
-    });
+    });*/
   function goingDeeper(value) {
     setScreen({
       state: value,
@@ -27,6 +28,13 @@ function Main(props) {
       [param]: value,
     });
   }
+  return (
+    <CompetitionList
+      competition={screen.content}
+      request={requestInfo}
+      clickEvent={goingDeeper}
+    />
+  );
   switch (screen.state) {
     case "competition":
       return (
@@ -88,7 +96,7 @@ function SearchBar(props) {
   );
 }
 function Search(props) {
-  const [input, inpChange] = useState("");
+  let [input, inpChange] = useState("");
   function handleChange(event) {
     event.preventDefault();
     inpChange((input = event.target.value));
@@ -100,7 +108,8 @@ function Search(props) {
 }
 
 function CompetitionList(props) {
-  const competition = props.content;
+  const competition = props.competition;
+  console.log(competition);
   const compList = competition.map((comp) => {
     return (
       <li key={comp.id} onClick={props.clickEvent("teams")}>
@@ -125,47 +134,46 @@ function TeamsList(props) {
 /*function Calendar(props) {
   return <ul>{date}</ul>;
 }*/
-async function fetching(url) {
-  const teams = await fetch(url, {
+function fetching(url) {
+  return fetch(url, {
+    method: "GET",
+    headers: {
+      "X-Auth-Token": "61d9e360e25743a0bbf1d837b0d1e7f2",
+    },
+  }).then((resp) => {
+    console.log(resp);
+    return resp.json();
+  });
+}
+function App(props) {
+  const [competition, setComp] = useState({
+    year: "2019",
+    league: [],
+    id: 0,
+    state: "competition", // 3 стейта - competition, teams, team
+  });
+  const [search, setSearch] = useState({
+    key: "",
+    date: new Date().getFullYear,
+  });
+
+  const startUrl = `http://api.football-data.org/v2/competitions/${competition.year}`;
+  const teamUrl = `http://api.football-data.org/v2/teams/${competition.id}/`;
+  const teamsUrl = `http://api.football-data.org/v2/competitions/${competition.id}/teams`;
+
+  fetch(startUrl, {
     method: "GET",
     headers: {
       "X-Auth-Token": "ef72570ff371408f9668e414353b7b2e",
     },
-  });
-  if (!teams.ok) {
-    const message = `An error has occured: ${teams.status}`;
-    throw new Error(message);
-  }
-
-  const teamJson = teams.json();
-  return teamJson;
-}
-function App(props) {
-  const [competition, setComp] = useState({
-    year: Date.now(),
-    league: [],
-    id: 0,
-  });
-  const [competitors, setTeams] = useState({
-    year: Date.now(),
-    teams: [],
-    id: 0,
-  });
-  const [search, setSearch] = useState({
-    date: Date.now(),
-    keyword: "",
-  });
-
-  const startUrl = "http://api.football-data.org/v2/competitions/";
-  const teamUrl = `http://api.football-data.org/v2/teams/${competitors.id}/`;
-  const teamsUrl = `http://api.football-data.org/v2/competitions/${competition.id}/teams`;
-
-  fetching(startUrl).then((compet) =>
-    setTeams({
-      league: compet,
-    })
-  );
-
+  })
+    .then((response) => response.json())
+    .then((compet) =>
+      setComp({
+        league: compet.competitions,
+      })
+    );
+  console.log(competition.league);
   /*const filtered = compet.competition.filter(
     (elem) => elem.name.include(compet.keyword) && elem.year == year
   );*/
@@ -180,38 +188,35 @@ function App(props) {
       date: value,
     });
   }
-  function setTeam(id) {
-    setTeams({
-      id: id,
+  function setState(value) {
+    setComp({
+      state: value,
     });
-    fetching(teamUrl).then((result) =>
-      setTeams({
-        teams: result,
-      })
-    );
   }
   function setLeague(id) {
     setComp({
       id: id,
     });
-    fetching(teamsUrl).then((result) =>
-      setTeams({
-        teams: result,
-      })
-    );
+    if (competition.state === "competition") {
+      fetching(startUrl).then((result) => setComp({ league: result }));
+      return;
+    }
+    if (competition.state === "teams") {
+      fetching(teamsUrl).then((result) =>
+        setComp({
+          teams: result,
+        })
+      );
+      return;
+    }
   }
   return (
     <main>
-      <SearchBar filter={changeFilter} />
-      <Main
-        setTeam={setTeam}
-        competition={competition}
-        competitors={competitors}
-        setLeague={setLeague}
-      />
+      <Main setState={setState} competition={competition} setLeague={setLeague} />
     </main>
   );
 }
+//<SearchBar filter={changeFilter} />
 ReactDOM.render(<App />, document.querySelector("#root"));
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))
